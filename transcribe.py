@@ -10,10 +10,10 @@ from pathlib import Path
 # ============================================================
 
 # Folder containing your input .mp4 video file(s)
-INPUT_DIR = r"C:\Users\YourName\Videos"
+INPUT_DIR = r"C:\Users\Mihir\Videos\w13 WIR.mp4"
 
 # Folder where the transcript .txt file will be saved
-OUTPUT_DIR = r"C:\Users\YourName\Videos\transcripts"
+OUTPUT_DIR = r"C:\Users\Mihir\Videos"
 
 # ============================================================
 
@@ -79,9 +79,8 @@ def main():
     )
     parser.add_argument(
         "--model",
-        default="base",
         choices=["tiny", "base", "small", "medium", "large"],
-        help="Whisper model size (default: base). Larger = more accurate but slower.",
+        help="Whisper model size. Larger = more accurate but slower.",
     )
     parser.add_argument(
         "--output-dir",
@@ -90,14 +89,30 @@ def main():
     )
     args = parser.parse_args()
 
+    if not args.model:
+        models = ["tiny", "small", "medium", "large"]
+        print("Select a Whisper model:")
+        for i, m in enumerate(models, 1):
+            print(f"  {i}. {m}")
+        while True:
+            choice = input("Enter number (1-4): ").strip()
+            if choice in {"1", "2", "3", "4"}:
+                args.model = models[int(choice) - 1]
+                break
+            print("Please enter 1, 2, 3, or 4.")
+
     if args.video:
         video_path = args.video
     else:
-        candidates = list(Path(INPUT_DIR).glob("*.mp4"))
-        if not candidates:
-            print(f"No .mp4 files found in {INPUT_DIR}")
-            sys.exit(1)
-        video_path = str(candidates[0])
+        input_path = Path(INPUT_DIR)
+        if input_path.is_file():
+            video_path = str(input_path)
+        else:
+            candidates = list(input_path.glob("*.mp4"))
+            if not candidates:
+                print(f"No .mp4 files found in {INPUT_DIR}")
+                sys.exit(1)
+            video_path = str(candidates[0])
         print(f"No video specified — using: {video_path}")
 
     transcribe(video_path, args.output_dir, args.model)
