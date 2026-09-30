@@ -2,6 +2,40 @@
 
 A Python script that transcribes MP4 video files to text using OpenAI Whisper, running entirely locally on your machine — no API keys or internet connection required after setup.
 
+Explicit input paths also accept audio files such as `.m4a`. With no file argument,
+the current default is `E:\School\2026-27\Fall\GEOG 301\Class Recordings\Geog 301 9-28.m4a`.
+Transcripts are saved beside the input unless `--output-dir` is supplied.
+
+## GPU or CPU processing
+
+The default `--device auto` uses an available NVIDIA CUDA GPU, otherwise the CPU.
+The script prints the selected device before loading the model. Use `--device cuda`
+to require GPU processing or `--device cpu` to require CPU processing:
+
+```powershell
+python transcribe.py --model large --device cuda
+python transcribe.py "E:\School\another-recording.m4a" --model large --device auto
+python transcribe.py --model medium --device cpu
+```
+
+For the configured Python 3.13 installation and RTX 5080, install CUDA-enabled
+PyTorch from the official CUDA 12.8 wheel index:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe" -m pip install --upgrade torch --index-url https://download.pytorch.org/whl/cu128
+& "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe" -c "import torch; print(torch.__version__); print(torch.cuda.is_available())"
+```
+
+The verification should report a CUDA build and `True`. The installed NVIDIA driver
+and the PyTorch wheel supply what this setup needs; a separate CUDA Toolkit is
+not required. GPU processing still uses some system RAM. Whisper's approximate
+GPU memory requirements are 5 GB for `medium` and 10 GB for `large`; leave room
+for other applications. GPU processing uses FP16, while CPU processing uses FP32.
+Restart an existing Python session after changing PyTorch.
+
+When `--model` is omitted, the script prompts for a model; it does not default to
+`base` when launched interactively.
+
 ---
 
 ## Requirements
