@@ -33,7 +33,8 @@ def extract_audio(video_path: str, audio_path: str) -> None:
         raise RuntimeError(f"ffmpeg failed:\n{result.stderr}")
 
 
-def transcribe(video_path: str, output_dir: str, model_size: str = "base") -> str:
+def transcribe(video_path: str, output_dir: str, model_size: str = "base", device: str = "auto") -> str:
+    import torch
     import whisper
 
     video_path = os.path.abspath(video_path)
@@ -45,8 +46,16 @@ def transcribe(video_path: str, output_dir: str, model_size: str = "base") -> st
     stem = Path(video_path).stem
     output_path = os.path.join(output_dir, f"{stem}.txt")
 
+    if device == "auto":
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    if device == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("CUDA is unavailable. Install CUDA-enabled PyTorch or use --device cpu.")
+    if device == "cuda":
+        print(f"Using GPU: {torch.cuda.get_device_name(0)} (VRAM)")
+    else:
+        print("Using CPU (system RAM)")
     print(f"Loading Whisper model '{model_size}'...")
-    model = whisper.load_model(model_size)
+    model = whisper.load_model(model_size, device=device)
 
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         audio_path = tmp.name
@@ -56,7 +65,7 @@ def transcribe(video_path: str, output_dir: str, model_size: str = "base") -> st
         extract_audio(video_path, audio_path)
 
         print("Transcribing (this may take a while for large files)...")
-        result = model.transcribe(audio_path, verbose=False)
+        result = model.transcribe(audio_path, verbose=False, fp16=device == "cuda")
         transcript = result["text"].strip()
     finally:
         if os.path.exists(audio_path):
@@ -71,7 +80,7 @@ def transcribe(video_path: str, output_dir: str, model_size: str = "base") -> st
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Transcribe an MP4 video to text using Whisper.")
+    parser = argparse.ArgumentParser(description="Transcribe audio or video to text using Whisper.")
     parser.add_argument(
         "video",
         nargs="?",
@@ -83,9 +92,15 @@ def main():
         help="Whisper model size. Larger = more accurate but slower.",
     )
     parser.add_argument(
+        "--device",
+        choices=["auto", "cuda", "cpu"],
+        default="auto",
+        help="Processing device: auto prefers an available NVIDIA GPU, cuda forces GPU, cpu forces CPU.",
+    )
+    parser.add_argument(
         "--output-dir",
-        default=OUTPUT_DIR,
-        help=f"Directory for transcript output (default: {OUTPUT_DIR})",
+        default=None,
+        help="Directory for transcript output (default: beside the input file).",
     )
     args = parser.parse_args()
 
@@ -115,7 +130,8 @@ def main():
             video_path = str(candidates[0])
         print(f"No video specified — using: {video_path}")
 
-    transcribe(video_path, args.output_dir, args.model)
+    output_dir = args.output_dir or str(Path(video_path).resolve().parent)
+    transcribe(video_path, output_dir, args.model, args.device)
 
 
 if __name__ == "__main__":
