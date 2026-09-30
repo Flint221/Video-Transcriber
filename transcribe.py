@@ -9,11 +9,11 @@ from pathlib import Path
 # CONFIGURATION — edit these two lines to match your setup
 # ============================================================
 
-# Folder containing your input .mp4 video file(s)
-INPUT_DIR = r"C:\Users\Mihir\Videos\w13 WIR.mp4"
+# Default input audio/video file (or a folder containing .mp4 files)
+INPUT_DIR = r"E:\School\2026-27\Fall\GEOG 301\Class Recordings\Geog 301 9-28.m4a"
 
 # Folder where the transcript .txt file will be saved
-OUTPUT_DIR = r"C:\Users\Mihir\Videos"
+OUTPUT_DIR = str(Path(INPUT_DIR).parent)
 
 # ============================================================
 
